@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+BR2_DOCKER_VERSION="${1}"
+
+if [ -z "${BR2_DOCKER_VERSION}" ]; then
+    printf "Usage: ${0} VERSION\n"
+    exit 1
+fi
+
+CONTEXT_DIR="${0%/*}"
+for d in "${CONTEXT_DIR}"/Dockerfile.*; do \
+    distro="${d#*/Dockerfile.}"
+    docker build \
+        -t "buildroot/${distro}:${BR2_DOCKER_VERSION}" \
+        -f "${d}" "${CONTEXT_DIR}"
+done

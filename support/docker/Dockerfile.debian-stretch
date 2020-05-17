@@ -49,6 +49,7 @@ RUN apt-get install -y --no-install-recommends \
         qemu-system-x86 \
         rsync \
         subversion \
+        sudo \
         unzip \
         wget \
         && \
@@ -60,7 +61,9 @@ RUN sed -i 's/# \(en_US.UTF-8\)/\1/' /etc/locale.gen && \
     /usr/sbin/locale-gen
 
 RUN useradd -ms /bin/bash br-user && \
-    chown -R br-user:br-user /home/br-user
+    chown -R br-user:br-user /home/br-user && \
+    printf 'br-user ALL=NOPASSWD: /bin/su -\n' >/etc/sudoers.d/br-user && \
+    chmod 0440 /etc/sudoers.d/br-user
 
 USER br-user
 WORKDIR /home/br-user

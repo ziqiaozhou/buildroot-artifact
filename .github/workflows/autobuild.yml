@@ -1,0 +1,44 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches:
+      - artifact
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 0 0 0'
+
+jobs:
+  artifact-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout source
+        uses: actions/checkout@v2
+        
+      - name: build
+        run: |
+          make defconfig
+          utils/config  --set-val BR2_TOOLCHAIN_EXTERNAL y
+          utils/config  --set-val BR2_TARGET_ROOTFS_CPIO y
+          utils/config  --set-val BR2_TARGET_ROOTFS_EXT2 y
+          utils/config  --set-val BR2_TARGET_ROOTFS_EXT2_4 y
+          utils/config  --set-val BR2_TARGET_ROOTFS_EXT2_GEN 4
+          utils/config -k --set-val  BR2_x86_64 y
+          yes '' | make syncconfig
+          make -j$(proc)
+          
+      - name: Release & Assets
+        uses: Hs1r1us/Release-AIO@v1.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: x86_64
+          # The name of the release
+          release_name: initramfs.cpio
+          # Text describing the contents of the tag
+          body: x86 initramfs.cpio
+          # The path to the asset you want to upload
+          asset_files: output/images
+          # `true` to create a draft (unpublished) release, `false` to create a published one. Default: `false`
+          draft: true

@@ -18,14 +18,7 @@ jobs:
         
       - name: build
         run: |
-          make defconfig
-          utils/config  --set-val BR2_TOOLCHAIN_EXTERNAL y
-          utils/config  --set-val BR2_TARGET_ROOTFS_CPIO y
-          utils/config  --set-val BR2_TARGET_ROOTFS_EXT2 y
-          utils/config  --set-val BR2_TARGET_ROOTFS_EXT2_4 y
-          utils/config  --set-val BR2_TARGET_ROOTFS_EXT2_GEN 4
-          utils/config -k --set-val  BR2_x86_64 y
-          yes '' | make syncconfig
+          cp config-snp-tiny .config
           make -j$(proc)
           
       - name: Release & Assets

@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - artifact
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0 0 0 0'
 
 jobs:
   artifact-build:

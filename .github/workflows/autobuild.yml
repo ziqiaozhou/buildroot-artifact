@@ -17,6 +17,7 @@ jobs:
       - name: build
         run: |
           cp config-snp-tiny .config
+          sudo apt-get install libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf -y 
           make -j$(proc)
           
       - name: Release & Assets

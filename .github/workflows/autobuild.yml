@@ -3,7 +3,7 @@ name: Build Docker Images
 on:
   push:
     branches:
-      - artifact
+      - artifact-snp
   workflow_dispatch:
   schedule:
     - cron: '0 0 0 0 0'

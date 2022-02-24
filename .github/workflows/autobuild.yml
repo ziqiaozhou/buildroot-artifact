@@ -3,10 +3,7 @@ name: Build Docker Images
 on:
   push:
     branches:
-      - artifact
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0 0 0 0'
+      - artifact-snp-qemu
 
 jobs:
   artifact-build:
@@ -18,7 +15,7 @@ jobs:
         
       - name: build
         run: |
-          cp config-snp-tiny .config
+          cp config-snp-qemu .config
           make -j$(proc)
           
       - name: Release & Assets
@@ -34,4 +31,4 @@ jobs:
           # The path to the asset you want to upload
           asset_files: output/images
           # `true` to create a draft (unpublished) release, `false` to create a published one. Default: `false`
-          draft: true
+          draft: false

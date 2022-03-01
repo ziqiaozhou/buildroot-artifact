@@ -15,7 +15,7 @@ jobs:
         
       - name: build
         run: |
-          cp config-snp-qemu .config
+          cp config-snp-tpm .config
           make -j$(proc)
           
       - name: Release & Assets

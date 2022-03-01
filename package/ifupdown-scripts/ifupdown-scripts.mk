@@ -51,13 +51,12 @@ define IFUPDOWN_SCRIPTS_INSTALL_INIT_OPENRC
 endef
 
 define IFUPDOWN_SCRIPTS_INSTALL_INIT_SYSV
-	$(INSTALL) -D -m 0755 $(IFUPDOWN_SCRIPTS_PKGDIR)/S40network \
-		$(TARGET_DIR)/etc/init.d/S40network
+	$(INSTALL) -D -m 0755 $(IFUPDOWN_SCRIPTS_PKGDIR)/$(BR2_PACKAGE_IFUPDOWN_SCRIPTS_CHOICE) \
+		$(TARGET_DIR)/etc/init.d/$(BR2_PACKAGE_IFUPDOWN_SCRIPTS_CHOICE)
 	$(IFUPDOWN_SCRIPTS_PREAMBLE)
 	$(IFUPDOWN_SCRIPTS_LOCALHOST)
 	$(IFUPDOWN_SCRIPTS_DHCP)
 endef
-
 # ifupdown-scripts can not be selected when systemd-networkd is
 # enabled, so if we are enabled with systemd, we must install our
 # own service file.

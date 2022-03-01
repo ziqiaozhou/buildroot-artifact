@@ -5,3 +5,7 @@ config BR2_PACKAGE_IFUPDOWN_SCRIPTS
 	help
 	  Set of scripts used by ifupdown (either the standalone one,
 	  or the busybox one) to bring network up, or tear it down.
+
+config BR2_PACKAGE_IFUPDOWN_SCRIPTS_CHOICE
+	string "ifupdown scripts name"
+	default "S40network"

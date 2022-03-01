@@ -9,7 +9,28 @@ mkdir -p /run/network
 case "$1" in
   start)
 	printf "Starting network: "
-	/sbin/ifup -a
+	echo "set up link"
+/sbin/ip link set dev eth0 up
+echo "config addr"
+/sbin/ip address add 192.168.0.102/24 dev eth0
+echo "config route"
+/sbin/ip route add default via 192.168.0.1 dev eth0
+echo "set up lo"
+/sbin/ip link set dev lo up
+echo "config addr for lo"
+/sbin/ip address add 127.0.0.1/8 dev lo
+ip link set eth1 up
+ip link add link eth1 name macvtap0 type macvtap mode bridge
+ip link set macvtap0 up
+echo "sshd started"
+mkdir -p /dev/pts
+mount devpts /dev/pts -t devpts
+/usr/bin/ssh-keygen -A
+/usr/sbin/sshd
+echo "show addr"
+ip addr
+echo "show route"
+ip route show  
 	[ $? = 0 ] && echo "OK" || echo "FAIL"
 	;;
   stop)

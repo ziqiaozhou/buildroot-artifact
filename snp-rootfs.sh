@@ -7,6 +7,14 @@ VMPL0_IP="192.168.0.111"
 VMPL2_IP="192.168.0.222"
 VMPL2="vmpl2"
 VMPL0="vmpl0"
+
+if [ $# -gt 0 ] ; then
+    BUILDROOT_BUILD=$1
+fi
+if [ $# -gt 1 ] ; then
+    snplinux_dir=$2  
+fi
+
 cp $BUILDROOT_BUILD/images/rootfs.ext2 $BUILDROOT_BUILD/images/rootfs-vmpl0.ext2
 mkdir /mnt/rootfs-vmpl0
 umount /mnt/rootfs-vmpl0

@@ -1,0 +1,5 @@
+config BR2_PACKAGE_TSS_MSR
+	bool "tss.msr"
+	depends on BR2_PACKAGE_PYTHON3
+	help
+	  TSS.MSR

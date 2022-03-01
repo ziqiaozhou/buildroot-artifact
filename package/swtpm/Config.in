@@ -1,0 +1,10 @@
+config BR2_PACKAGE_SWTPM
+	bool "swtpm"
+    depends on BR2_PACKAGE_LIBTPMS
+	depends on BR2_PACKAGE_JSON_GLIB
+	depends on BR2_PACKAGE_LIBFUSE
+	depends on BR2_PACKAGE_LIBSECCOMP
+	depends on BR2_PACKAGE_EXPECT
+	depends on BR2_PACKAGE_LIBTASN1
+	help
+	  SWTPM for qemu

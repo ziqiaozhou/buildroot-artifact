@@ -17,18 +17,19 @@ jobs:
         run: |
           cp config-snp-tpm .config
           make -j$(proc)
+          sh snp-rootfs.sh
           
       - name: Release & Assets
         uses: Hs1r1us/Release-AIO@v1.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: x86_64
+          tag_name: SNP-TPM
           # The name of the release
-          release_name: initramfs.cpio
+          release_name: initramfs
           # Text describing the contents of the tag
-          body: x86 initramfs.cpio
+          body: x86 initramfs
           # The path to the asset you want to upload
-          asset_files: output/images
+          asset_files: output/images/rootfs.ext2
           # `true` to create a draft (unpublished) release, `false` to create a published one. Default: `false`
           draft: false

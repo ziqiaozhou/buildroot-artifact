@@ -6,5 +6,7 @@ config BR2_PACKAGE_SWTPM
 	depends on BR2_PACKAGE_LIBSECCOMP
 	depends on BR2_PACKAGE_EXPECT
 	depends on BR2_PACKAGE_LIBTASN1
+	depends on BR2_PACKAGE_TCL
+	depends on BR2_PACKAGE_GNUTLS
 	help
 	  SWTPM for qemu

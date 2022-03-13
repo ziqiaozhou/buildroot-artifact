@@ -1,46 +1,54 @@
 BUILDROOT_BUILD="/root/cvm/buildroot-artifact/build-tpm"
-snplinux_dir="/root/cvm/snplinux"
+linux_dir2="/root/cvm/snplinux"
+linux_dir="/root/cvm/linux"
 VMPL0_MEM_SIZE=4096
 VMPL2_MEM_SIZE=1024
 IP_PLACE_HOLDER="192.168.0.102"
 VMPL0_IP="192.168.0.111"
 VMPL2_IP="192.168.0.222"
-VMPL2="vmpl2"
 VMPL0="vmpl0"
-
+VMPL2="vmpl2"
+MNT0=/mnt/rootfs-$VMPL0
+MNT2=/mnt/rootfs-$VMPL2
 if [ $# -gt 0 ] ; then
     BUILDROOT_BUILD=$1
 fi
 if [ $# -gt 1 ] ; then
-    snplinux_dir=$2  
+    linux_dir=$2  
 fi
 
-cp $BUILDROOT_BUILD/images/rootfs.ext2 $BUILDROOT_BUILD/images/rootfs-vmpl0.ext2
-mkdir /mnt/rootfs-vmpl0
-umount /mnt/rootfs-vmpl0
-mount $BUILDROOT_BUILD/images/rootfs-vmpl0.ext2 /mnt/rootfs-vmpl0
-cp $snplinux_dir/$VMPL2/arch/x86/boot/bzImage /mnt/rootfs-vmpl0/
+
+cp $BUILDROOT_BUILD/images/rootfs.ext2 $BUILDROOT_BUILD/images/rootfs-$VMPL0.ext2
+
+mkdir $MNT0
+mount $BUILDROOT_BUILD/images/rootfs-$VMPL0.ext2 $MNT0
+cp $linux_dir/$VMPL2/arch/x86/boot/bzImage $MNT0/bzImage
+cp $linux_dir/$VMPL2/vmlinux $MNT0/vmlinux
+cp $linux_dir2/$VMPL2/arch/x86/boot/bzImage $MNT0/bzImage2
+cp $BUILDROOT_BUILD/qboot-*/build/bios.bin $MNT0/usr/share/qemu/qboot.bin
+cp S60linux2 $MNT0/etc/init.d/S60linux2
+cp qemu.sh $MNT0/usr/bin/qemu.sh
 echo "
 PermitRootLogin yes
 PermitEmptyPasswords yes
 PasswordAuthentication yes
-" >> /mnt/rootfs-vmpl0/etc/ssh/sshd_config
+" >> $MNT0/etc/ssh/sshd_config
+sed -i 's/'$IP_PLACE_HOLDER'/'$VMPL0_IP/'g' $MNT0/etc/init.d/S40network
+umount $MNT0
+qemu-img convert -O vhdx $BUILDROOT_BUILD/images/rootfs-$VMPL0.ext2 $BUILDROOT_BUILD/images/rootfs-$VMPL0.vhdx
 
-sed -i 's/'$IP_PLACE_HOLDER'/'$VMPL0_IP/'g' /mnt/rootfs-vmpl0/etc/init.d/S40network
-umount /mnt/rootfs-vmpl0
-qemu-img convert -O vhdx $BUILDROOT_BUILD/images/rootfs-vmpl0.ext2 $BUILDROOT_BUILD/images/rootfs-vmpl0.vhdx
 
-cp $BUILDROOT_BUILD/images/rootfs.ext2 $BUILDROOT_BUILD/images/rootfs-vmpl2.ext2
-mkdir /mnt/rootfs-vmpl2
-umount /mnt/rootfs-vmpl2
-mount $BUILDROOT_BUILD/images/rootfs-vmpl2.ext2 /mnt/rootfs-vmpl2
-rm -r /mnt/rootfs-vmpl2/usr/share/qemu
-rm -r /mnt/rootfs-vmpl2/usr/bin/qemu*
-sed -i 's/'$IP_PLACE_HOLDER'/'$VMPL2_IP/'g' /mnt/rootfs-vmpl2/etc/init.d/S40network
+cp $BUILDROOT_BUILD/images/rootfs.ext2 $BUILDROOT_BUILD/images/rootfs-$VMPL2.ext2
+mkdir $MNT2
+umount $MNT2
+mount $BUILDROOT_BUILD/images/rootfs-$VMPL2.ext2 $MNT2
+rm -r $MNT2/usr/share/qemu
+rm -r $MNT2/usr/bin/qemu*
+sed -i 's/'$IP_PLACE_HOLDER'/'$VMPL2_IP/'g' $MNT2/etc/init.d/S40network
 echo "
 PermitRootLogin yes
 PermitEmptyPasswords yes
 PasswordAuthentication yes
-" >> /mnt/rootfs-vmpl2/etc/ssh/sshd_config
-umount /mnt/rootfs-vmpl2
-qemu-img convert -O vhdx $BUILDROOT_BUILD/images/rootfs-vmpl2.ext2 $BUILDROOT_BUILD/images/rootfs-vmpl2.vhdx
+" >> $MNT2/etc/ssh/sshd_config
+umount $MNT2
+qemu-img convert -O vhdx $BUILDROOT_BUILD/images/rootfs-$VMPL2.ext2 $BUILDROOT_BUILD/images/rootfs-$VMPL2.vhdx

@@ -1,0 +1,177 @@
+diff --git a/hw/core/machine.c b/hw/core/machine.c
+index 53a99abc56..8584ca2ae4 100644
+--- a/hw/core/machine.c
++++ b/hw/core/machine.c
+@@ -421,6 +421,20 @@ static void machine_set_graphics(Object *obj, bool value, Error **errp)
+     ms->enable_graphics = value;
+ }
+ 
++static bool machine_get_mmio_fwcfg(Object *obj, Error **errp)
++{
++    MachineState *ms = MACHINE(obj);
++
++    return ms->use_mmio_fwcfg;
++}
++
++static void machine_set_mmio_fwcfg(Object *obj, bool value, Error **errp)
++{
++    MachineState *ms = MACHINE(obj);
++
++    ms->use_mmio_fwcfg = value;
++}
++
+ static char *machine_get_firmware(Object *obj, Error **errp)
+ {
+     MachineState *ms = MACHINE(obj);
+@@ -839,6 +853,11 @@ static void machine_class_init(ObjectClass *oc, void *data)
+     object_class_property_set_description(oc, "graphics",
+         "Set on/off to enable/disable graphics emulation");
+ 
++    object_class_property_add_bool(oc, "use-mmio-fwcfg",
++        machine_get_mmio_fwcfg, machine_set_mmio_fwcfg);
++    object_class_property_set_description(oc, "use-mmio-fwcfg",
++        "Set on/off to use MMIO-based fw_cfg or port IO based");
++
+     object_class_property_add_str(oc, "firmware",
+         machine_get_firmware, machine_set_firmware);
+     object_class_property_set_description(oc, "firmware",
+@@ -897,6 +916,7 @@ static void machine_initfn(Object *obj)
+     ms->dump_guest_core = true;
+     ms->mem_merge = true;
+     ms->enable_graphics = true;
++    ms->use_mmio_fwcfg = false;
+     ms->kernel_cmdline = g_strdup("");
+ 
+     if (mc->nvdimm_supported) {
+diff --git a/hw/i386/fw_cfg.c b/hw/i386/fw_cfg.c
+index a283785a8d..7e3ad8e9f8 100644
+--- a/hw/i386/fw_cfg.c
++++ b/hw/i386/fw_cfg.c
+@@ -24,6 +24,7 @@
+ #include "kvm/kvm_i386.h"
+ #include "qapi/error.h"
+ #include CONFIG_DEVICES
++#define X86_MMIO_CFG 1
+ 
+ struct hpet_fw_config hpet_cfg = {.count = UINT8_MAX};
+ 
+@@ -103,8 +104,13 @@ FWCfgState *fw_cfg_arch_create(MachineState *ms,
+     const CPUArchIdList *cpus = mc->possible_cpu_arch_ids(ms);
+     int nb_numa_nodes = ms->numa_state->num_nodes;
+ 
+-    fw_cfg = fw_cfg_init_io_dma(FW_CFG_IO_BASE, FW_CFG_IO_BASE + 4,
+-                                &address_space_memory);
++    if(ms->use_mmio_fwcfg){
++        uint64_t base = FW_CFG_MMIO_BASE;
++        fw_cfg = fw_cfg_init_mem_wide(base + 8, base, 8, base + 16, &address_space_memory);
++    }else{
++        fw_cfg = fw_cfg_init_io_dma(FW_CFG_IO_BASE, FW_CFG_IO_BASE + 4,
++                                    &address_space_memory);
++    }
+     fw_cfg_add_i16(fw_cfg, FW_CFG_NB_CPUS, boot_cpus);
+ 
+     /* FW_CFG_MAX_CPUS is a bit confusing/problematic on x86:
+diff --git a/hw/i386/fw_cfg.h b/hw/i386/fw_cfg.h
+index 275f15c1c5..2a52c84f3b 100644
+--- a/hw/i386/fw_cfg.h
++++ b/hw/i386/fw_cfg.h
+@@ -13,6 +13,7 @@
+ #include "hw/nvram/fw_cfg.h"
+ 
+ #define FW_CFG_IO_BASE     0x510
++#define FW_CFG_MMIO_BASE   0xfed50000
+ 
+ #define FW_CFG_ACPI_TABLES      (FW_CFG_ARCH_LOCAL + 0)
+ #define FW_CFG_SMBIOS_ENTRIES   (FW_CFG_ARCH_LOCAL + 1)
+diff --git a/hw/nvram/fw_cfg.c b/hw/nvram/fw_cfg.c
+index c06b30de11..84ed6e023b 100644
+--- a/hw/nvram/fw_cfg.c
++++ b/hw/nvram/fw_cfg.c
+@@ -57,6 +57,7 @@
+ #define FW_CFG_DMA_CTL_WRITE   0x10
+ 
+ #define FW_CFG_DMA_SIGNATURE 0x51454d5520434647ULL /* "QEMU CFG" */
++#define X86_MMIO_CFG 1
+ 
+ struct FWCfgEntry {
+     uint32_t len;
+@@ -459,6 +460,26 @@ static void fw_cfg_dma_mem_write(void *opaque, hwaddr addr,
+ {
+     FWCfgState *s = opaque;
+ 
++    if (size == 2) {
++        if (addr == 0) {
++            /* FWCfgDmaAccess low address */
++            s->dma_addr |= (value << 48);
++            trace_fw_cfg_select(s, addr, "dma", s->dma_addr);
++        }else if (addr == 2) {
++            /* FWCfgDmaAccess low address */
++            s->dma_addr |= (value << 32);
++            trace_fw_cfg_select(s, addr, "dma", s->dma_addr);
++        }else if (addr == 4) {
++            /* FWCfgDmaAccess low address */
++            s->dma_addr |= (value << 16);
++            trace_fw_cfg_select(s, addr, "dma", s->dma_addr);
++        }else if (addr == 6) {
++            /* FWCfgDmaAccess low address */
++            s->dma_addr |= value;
++            trace_fw_cfg_select(s, addr, "dma", s->dma_addr);
++            fw_cfg_dma_transfer(s);
++        }
++    }
+     if (size == 4) {
+         if (addr == 0) {
+             /* FWCfgDmaAccess high address */
+@@ -479,6 +500,7 @@ static bool fw_cfg_dma_mem_valid(void *opaque, hwaddr addr,
+                                  MemTxAttrs attrs)
+ {
+     return !is_write || ((size == 4 && (addr == 0 || addr == 4)) ||
++                        (size == 2 && (addr % 2 == 0 || addr < 8 ))||
+                          (size == 8 && addr == 0));
+ }
+ 
+diff --git a/include/hw/boards.h b/include/hw/boards.h
+index 9c1c190104..de9fa1cc67 100644
+--- a/include/hw/boards.h
++++ b/include/hw/boards.h
+@@ -350,6 +350,7 @@ struct MachineState {
+     char *kernel_filename;
+     char *kernel_cmdline;
+     char *initrd_filename;
++    bool use_mmio_fwcfg;
+     const char *cpu_type;
+     AccelState *accelerator;
+     CPUArchIdList *possible_cpus;
+diff --git a/qemu-options.hx b/qemu-options.hx
+index ae2c6dbbfc..9e880b689f 100644
+--- a/qemu-options.hx
++++ b/qemu-options.hx
+@@ -3679,6 +3679,14 @@ SRST
+     Limitation: covers only syntactic aspects of QMP.
+ ERST
+ 
++DEF("mmio-fw_cfg", 0, QEMU_OPTION_mmio_fwcfg,
++    "-mmio-fw_cfg\n"
++    "                Use MMIO fw_cfg instead of port IO based.\n"
++    "                This option needs a supported bios.\n",
++    QEMU_ARCH_I386)
++SRST
++ERST
++
+ DEF("fw_cfg", HAS_ARG, QEMU_OPTION_fwcfg,
+     "-fw_cfg [name=]<name>,file=<file>\n"
+     "                add named fw_cfg entry with contents from file\n"
+diff --git a/softmmu/vl.c b/softmmu/vl.c
+index 620a1f1367..00d7d030f6 100644
+--- a/softmmu/vl.c
++++ b/softmmu/vl.c
+@@ -3392,6 +3392,9 @@ void qemu_init(int argc, char **argv, char **envp)
+                 qdict_put_str(machine_opts_dict, "usb", "on");
+                 add_device_config(DEV_USB, optarg);
+                 break;
++            case QEMU_OPTION_mmio_fwcfg:
++                qdict_put_str(machine_opts_dict, "use-mmio-fwcfg", "on");
++                break;
+             case QEMU_OPTION_device:
+                 if (optarg[0] == '{') {
+                     QObject *obj = qobject_from_json(optarg, &error_fatal);

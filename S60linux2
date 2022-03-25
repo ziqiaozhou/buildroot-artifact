@@ -6,8 +6,12 @@
 # Make sure the ssh-keygen progam exists
 umask 077
 
-start() {
-	/usr/bin/qemu.sh /vmlinux qboot.bin
+start() 
+{
+	mount devpts /dev/pts -t devpts
+	mknod /dev/kvm c 10 232
+	chmod a+rw /dev/kvm
+	/usr/bin/qemu.sh /bzImage qboot.bin
 }
 stop() {
 	pkill qemu

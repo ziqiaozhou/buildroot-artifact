@@ -1,8 +1,9 @@
-BUILDROOT_BUILD="/root/cvm/buildroot-artifact/build-tpm"
-linux_dir2="/root/cvm/snplinux"
-linux_dir="/root/cvm/linux"
+base="/root/cvm"
+BUILDROOT_BUILD="$base/buildroot/build"
+linux_dir2="$base/snplinux"
+linux_dir="$base/linux"
 VMPL0_MEM_SIZE=4096
-VMPL2_MEM_SIZE=1024
+VMPL2_MEM_SIZE=2048
 IP_PLACE_HOLDER="192.168.0.102"
 VMPL0_IP="192.168.0.111"
 VMPL2_IP="192.168.0.222"
@@ -21,11 +22,12 @@ fi
 cp $BUILDROOT_BUILD/images/rootfs.ext2 $BUILDROOT_BUILD/images/rootfs-$VMPL0.ext2
 
 mkdir $MNT0
+umount $MNT0
 mount $BUILDROOT_BUILD/images/rootfs-$VMPL0.ext2 $MNT0
 cp $linux_dir/$VMPL2/arch/x86/boot/bzImage $MNT0/bzImage
-cp $linux_dir/$VMPL2/vmlinux $MNT0/vmlinux
-cp $linux_dir2/$VMPL2/arch/x86/boot/bzImage $MNT0/bzImage2
-cp $BUILDROOT_BUILD/qboot-*/build/bios.bin $MNT0/usr/share/qemu/qboot.bin
+#cp $linux_dir/$VMPL2/vmlinux $MNT0/vmlinux
+#cp $linux_dir2/$VMPL2/arch/x86/boot/bzImage $MNT0/bzImage2
+cp $BUILDROOT_BUILD/build/qboot-*/build/bios.bin $MNT0/usr/share/qemu/qboot.bin
 cp S60linux2 $MNT0/etc/init.d/S60linux2
 cp qemu.sh $MNT0/usr/bin/qemu.sh
 echo "
@@ -34,6 +36,7 @@ PermitEmptyPasswords yes
 PasswordAuthentication yes
 " >> $MNT0/etc/ssh/sshd_config
 sed -i 's/'$IP_PLACE_HOLDER'/'$VMPL0_IP/'g' $MNT0/etc/init.d/S40network
+#sh mkramdisk.sh $MNT0
 umount $MNT0
 qemu-img convert -O vhdx $BUILDROOT_BUILD/images/rootfs-$VMPL0.ext2 $BUILDROOT_BUILD/images/rootfs-$VMPL0.vhdx
 
